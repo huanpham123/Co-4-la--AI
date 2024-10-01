@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import logging
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Cho phép CORS cho tất cả các nguồn
 
 # Enable logging
 logging.basicConfig(level=logging.DEBUG)
@@ -19,6 +21,7 @@ def chat():
     message = data.get('message')
 
     if message:
+        app.logger.info(f"Received message: {message}")
         api_url = f"https://deku-rest-api.gleeze.com/api/gpt-4o?q={message}&uid=unique_id"
         try:
             response = requests.get(api_url)
@@ -33,13 +36,13 @@ def chat():
                     return jsonify({'reply': response_data.get('result', 'No answer provided')})
                 except ValueError:
                     app.logger.error("Invalid JSON response from API.")
-                    return jsonify({'error': 'Invalid response from API.'})
+                    return jsonify({'error': 'Invalid response from API.', 'details': response.text})
             else:
                 app.logger.error(f"API returned an error: {response.status_code} {response.text}")
                 return jsonify({'error': f'API error: {response.status_code}'})
         except Exception as e:
-            app.logger.error(f"Error: {str(e)}")
-            return jsonify({'error': str(e)})
+            app.logger.error(f"Error occurred while processing request: {str(e)}")
+            return jsonify({'error': 'An error occurred while processing your request.'})
 
     return jsonify({'error': 'No message provided'})
 
